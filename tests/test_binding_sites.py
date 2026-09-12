@@ -4,35 +4,30 @@ import unittest
 from unittest.mock import patch
 
 from collections import Counter
-from tmc import points
-
-from tmc.utils import load, get_stdout, patch_helper
-
-
-module_name='src.binding_sites'
-toint = load(module_name, 'toint')
-get_features_and_labels = load(module_name, 'get_features_and_labels')
-cluster_euclidean = load(module_name, 'cluster_euclidean')
-cluster_hamming = load(module_name, 'cluster_hamming')
-ph = patch_helper(module_name)
 
 from sklearn.metrics import accuracy_score
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import pairwise_distances
 
+from src.binding_sites import (
+    toint,
+    get_features_and_labels,
+    cluster_euclidean,
+    cluster_hamming,
+)
 
 
-class BindingSites(unittest.TestCase):
+class TestToint(unittest.TestCase):
 
-
-    @points('p06-07.1')
     def test_toint(self):
         self.assertEqual(toint("A"), 0, msg="Function toint is not functioning correctly for input 'A'!")
         self.assertEqual(toint("C"), 1, msg="Function toint is not functioning correctly for input 'C'!")
         self.assertEqual(toint("G"), 2, msg="Function toint is not functioning correctly for input 'G'!")
         self.assertEqual(toint("T"), 3, msg="Function toint is not functioning correctly for input 'T'!")
 
-    @points('p06-07.1')
+
+class TestGetFeaturesAndLabels(unittest.TestCase):
+
     def test_features_and_labels(self):
         A, y = get_features_and_labels("src/data.seq")
         n, m = A.shape
@@ -44,29 +39,28 @@ class BindingSites(unittest.TestCase):
         self.assertEqual(d[1], 2888, msg="Incorrect number of ones (Cs)!")
         self.assertEqual(d[2], 2912, msg="Incorrect number of twos (Gs)!")
         self.assertEqual(d[3], 4071, msg="Incorrect number of threes (Ts)!")
-        self.assertEqual(sum(d.values()), 8*2000, msg="Incorrect total number of nucleotides!")
+        self.assertEqual(sum(d.values()), 8 * 2000, msg="Incorrect total number of nucleotides!")
 
-    @points('p06-07.2')
+
+class TestClusterEuclidean(unittest.TestCase):
+
     def test_euclidean1(self):
         acc = cluster_euclidean("src/data.seq")
         self.assertAlmostEqual(acc, 0.9895, places=4,
                                msg="Function cluster_euclidean returned incorrect accuracy for file %s!" % "src/data.seq")
 
-    @points('p06-07.2')
     def test_euclidean2(self):
-        with patch(ph("sklearn.metrics.accuracy_score"), side_effect=accuracy_score) as accs:
+        with patch("src.binding_sites.accuracy_score", side_effect=accuracy_score) as accs:
             cluster_euclidean("src/data.seq")
             accs.assert_called_once()
 
-    @points('p06-07.2')
     def test_euclidean3(self):
-        with patch(ph("get_features_and_labels"), side_effect=get_features_and_labels) as g:
+        with patch("src.binding_sites.get_features_and_labels", side_effect=get_features_and_labels) as g:
             cluster_euclidean("src/data.seq")
             g.assert_called_once()
 
-    @points('p06-07.2')
     def test_euclidean4(self):
-        with patch(ph("AgglomerativeClustering"), side_effect=AgglomerativeClustering) as g:
+        with patch("src.binding_sites.AgglomerativeClustering", side_effect=AgglomerativeClustering) as g:
             cluster_euclidean("src/data.seq")
             g.assert_called_once()
             args, kwargs = g.call_args
@@ -83,25 +77,25 @@ class BindingSites(unittest.TestCase):
             self.assertEqual(kwargs['affinity'], "euclidean",
                              "Incorrect argument value of 'affinity' passed to AgglomerativeClustering!")
 
-    @points('p06-07.3')
+
+class TestClusterHamming(unittest.TestCase):
+
     def test_hamming1(self):
-        with patch(ph("plt.show")) as show:
+        with patch("src.binding_sites.plt.show") as show:
             acc = cluster_hamming("src/data.seq")
             self.assertAlmostEqual(acc, 0.9985, places=4, msg="Function cluster_hamming returned incorrect accuracy for file %s!" % "src/data.seq")
             #show.assert_called_once()
 
-    @points('p06-07.3')
     def test_hamming2(self):
-        with patch(ph("plt.show")) as show:
-            with patch(ph("sklearn.metrics.accuracy_score"), side_effect=accuracy_score) as accs:
+        with patch("src.binding_sites.plt.show") as show:
+            with patch("src.binding_sites.accuracy_score", side_effect=accuracy_score) as accs:
                 acc = cluster_hamming("src/data.seq")
                 accs.assert_called_once()
 
-    @points('p06-07.3')
     def test_hamming3(self):
-        with patch(ph("plt.show")) as show:
-            with patch(ph("get_features_and_labels"), side_effect=get_features_and_labels) as g:
-                with patch(ph("pairwise_distances"), side_effect=pairwise_distances) as ppd:
+        with patch("src.binding_sites.plt.show") as show:
+            with patch("src.binding_sites.get_features_and_labels", side_effect=get_features_and_labels) as g:
+                with patch("src.binding_sites.pairwise_distances", side_effect=pairwise_distances) as ppd:
                     cluster_hamming("src/data.seq")
                     g.assert_called_once()
                     ppd.assert_called_once()
@@ -110,10 +104,9 @@ class BindingSites(unittest.TestCase):
                     self.assertEqual(kwargs['metric'], "hamming",
                              "Incorrect argument value of 'metric' passed to pairwise_distances!")
 
-    @points('p06-07.3')
     def test_hamming4(self):
-        with patch(ph("plt.show")) as show:
-            with patch(ph("AgglomerativeClustering"), side_effect=AgglomerativeClustering) as g:
+        with patch("src.binding_sites.plt.show") as show:
+            with patch("src.binding_sites.AgglomerativeClustering", side_effect=AgglomerativeClustering) as g:
                 cluster_hamming("src/data.seq")
                 args, kwargs = g.call_args
                 if 'n_clusters' in kwargs:
@@ -127,6 +120,6 @@ class BindingSites(unittest.TestCase):
                 self.assertEqual(kwargs['affinity'], "precomputed", "Incorrect argument value passed to AgglomerativeClustering!")
                 g.assert_called_once()
 
+
 if __name__ == '__main__':
     unittest.main()
-
